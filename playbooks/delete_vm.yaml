@@ -1,0 +1,46 @@
+---
+- name: Delete a proxmox VM
+  hosts: proxmox_vms
+  connection: local
+  gather_facts: false
+  vars:
+    hostname: "{{ inventory_hostname }}"
+    ansible_python_interpreter: "{{ansible_playbook_python}}"
+
+  tasks:
+    - name: Gather VM facts
+      community.general.proxmox_vm_info:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        node: "{{ proxmox.node }}"
+        name: "{{ hostname }}"
+      register: info
+
+    - name: Stop VM
+      when: info.proxmox_vms  and info.proxmox_vms[0].status == "running"
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        node: "{{ proxmox.node }}"
+        name: "{{ hostname }}"
+        force: true
+        state: stopped
+
+    - name: Delete VM
+      when: info.proxmox_vms 
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        node: "{{ proxmox.node }}"
+        name: "{{ hostname }}"
+        protection: false
+        state: absent
+        force: true
+      delay: 3
+      retries: 10

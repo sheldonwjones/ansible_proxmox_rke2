@@ -1,0 +1,19 @@
+- name: Install JupyterHub using helm
+  hosts: jupyterhub_deployments
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Add jupyter chart repo
+      kubernetes.core.helm_repository:
+        name: jupyterhub
+        repo_url: "https://hub.jupyter.org/helm-chart/"
+
+    - name: Deploy jupyterhub
+      kubernetes.core.helm:
+        name: jupyterhub
+        chart_ref: jupyterhub/jupyterhub
+        namespace: jupyter
+        update_repo_cache: true
+        create_namespace: true
+        kubeconfig: /tmp/rke2.yaml

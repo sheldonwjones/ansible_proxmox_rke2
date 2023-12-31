@@ -1,0 +1,12 @@
+---
+roles:
+  - name: lablabs.ansible-role-rke2
+    scm: git
+    src: https://github.com/lablabs/ansible-role-rke2.git
+    version: 1.28.0
+
+collections:
+  - name: ansible.posix
+  - name: kubernetes.core
+  - name: community.general
+    version: ">=8.1.0"

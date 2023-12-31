@@ -1,0 +1,14 @@
+- name: Deploy RKE2
+  hosts: "{{ rke2_cluster_group_name | default(k8s_cluster) }}"
+  become: true
+  tasks:
+    - name: Enable ip forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+
+    - ansible.builtin.import_role:
+        name: lablabs.ansible-role-rke2

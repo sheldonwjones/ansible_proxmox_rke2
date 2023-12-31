@@ -1,0 +1,10 @@
+---
+## create some VMs in proxmox
+- ansible.builtin.import_playbook: playbooks/create_vm.yaml
+
+## deploy the rke2 cluster
+- ansible.builtin.import_playbook: playbooks/rke2.yaml
+
+## fun with helm
+- ansible.builtin.import_playbook: playbooks/longhorn.yaml
+- ansible.builtin.import_playbook: playbooks/jupyterhub.yaml

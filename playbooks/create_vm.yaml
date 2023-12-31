@@ -1,0 +1,90 @@
+---
+- name: Create a proxmox VM
+  hosts: proxmox_vms
+  connection: local
+  gather_facts: false
+  serial: 1
+  vars:
+    ansible_python_interpreter: "{{ansible_playbook_python}}"
+    hostname: "{{ inventory_hostname }}"
+
+  tasks:
+    - name: Create VM
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        node: "{{ proxmox.node }}"
+        vmid: "{{ vmid }}"
+        clone: arbitrary_name
+        name: "{{ hostname }}"
+        state: present
+      retries: 10
+      delay: 3
+
+    - name: Update
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        node: "{{ proxmox.node }}"
+        name: "{{ hostname }}"
+        cores: "{{ (hostvars[inventory_hostname] | default({})).cores | default(omit) }}"
+        memory: "{{ (hostvars[inventory_hostname] | default({})).memory | default(omit) }}"
+        ipconfig: "{{ (hostvars[inventory_hostname] | default({})).ipconfig | default(omit) }}"
+        update: true
+        force: true
+        state: present
+      retries: 10
+      delay: 3
+
+    - name: Resize VM
+      community.general.proxmox_disk:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        name: "{{ hostname }}"
+        size: "{{ size }}"
+        disk: virtio0
+        state: resized
+      retries: 10
+      delay: 3
+
+    - name: Start VM
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox.api_user }}"
+        api_token_id: "{{ proxmox.api_token_id }}"
+        api_token_secret: "{{ proxmox.api_token_secret }}"
+        api_host: "{{ proxmox.api_host }}"
+        node: "{{ proxmox.node }}"
+        name: "{{ hostname }}"
+        state: started
+      retries: 10
+      delay: 3
+
+- name: VM status
+  hosts: proxmox_vms
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Wait for sshd to start
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        delay: 1
+
+- name: Wait for cloud-init
+  hosts: proxmox_vms
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Cloud-init status=done
+      ansible.builtin.command: cloud-init status
+      register: cmd_status
+      retries: 10
+      delay: 3
+      until: cmd_status.stdout.endswith("done")
+      changed_when: false
